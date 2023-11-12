@@ -14,13 +14,5 @@ class ImageGenerator:
             size="1792x1024",
             style="vivid"
         )
-        # response = openai.Completion.create(
-        #     engine="dall-e-3",
-        #     prompt=text,
-        #     max_tokens=50,
-        #     n=1,
-        #     stop=None,
-        #     temperature=0.7
-        # )
         image = response.data[0].url
         return image
