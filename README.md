@@ -1,5 +1,5 @@
 # dalle-displayer
-
+*A super simple interface to take in text and show you a dall-e image.*
 
 ## Install dependencies
 *Probably best to use a virtual environment like Conda*
