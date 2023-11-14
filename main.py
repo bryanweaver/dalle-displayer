@@ -46,14 +46,18 @@ class App:
         self.loading_label.pack(side=tk.BOTTOM, padx=5)
 
         # Text label and entry
-        self.text_label = tk.Label(self.control_frame, text="Enter Text:")
-        self.text_label.pack(side=tk.LEFT, padx=5)
-        self.text_entry = tk.Entry(self.control_frame, width=50)
-        self.text_entry.pack(side=tk.LEFT, padx=5)
+        self.entry_frame = tk.Frame(self.control_frame)
+        self.entry_frame.pack(side=tk.BOTTOM, padx=5, pady=5)
+
+        self.text_label = tk.Label(self.entry_frame, text="Enter Text:")
+        self.text_label.pack(in_=self.entry_frame, side=tk.LEFT, padx=5)
+        self.text_entry = tk.Entry(self.entry_frame, width=100)
+        self.text_entry.pack(in_=self.entry_frame, side=tk.LEFT, padx=5, pady=5)
 
         # Generate button
-        self.generate_button = tk.Button(self.control_frame, text="Generate Image", command=self.generate_image)
-        self.generate_button.pack(side=tk.LEFT, padx=5)
+        self.generate_button = tk.Button(self.entry_frame, text="Generate Image", command=self.generate_image)
+        self.generate_button.pack(in_=self.entry_frame, padx=5)
+
 
         # Scrollable canvas setup
         self.canvas = tk.Canvas(self.root)
@@ -102,23 +106,25 @@ class App:
         self.loading_label.config(text="Generating image... Please wait.")
         
         # Show and start the progress bar
-        self.progress.pack(side=tk.LEFT, padx=5, fill=tk.X)
+        self.progress.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.progress.start(10)
         
         # Start a background thread for the image generation task
         thread = threading.Thread(target=self.generate_image_thread, args=(text,))
         thread.start()
 
-
     def generate_image_thread(self, text):
         try:
-            image_url = self.image_generator.generate_image(text)
-            with urllib.request.urlopen(image_url) as fd:
-                image_file = io.BytesIO(fd.read())
-                image = Image.open(image_file)
-                photo = ImageTk.PhotoImage(image)
-                # Schedule the display_image method to run in the main thread
-                self.root.after(0, lambda: self.display_image(photo, image))
+            image_url, error = self.image_generator.generate_image(text)
+            if error:
+                self.root.after(0, lambda: messagebox.showerror("Error", error))
+            elif image_url:
+                with urllib.request.urlopen(image_url) as fd:
+                    image_file = io.BytesIO(fd.read())
+                    image = Image.open(image_file)
+                    photo = ImageTk.PhotoImage(image)
+                    # Schedule the display_image method to run in the main thread
+                    self.root.after(0, lambda: self.display_image(photo, image))
         except Exception as e:
             logging.error("Error in generating image: ", exc_info=True)
             messagebox.showerror("Error", str(e))
