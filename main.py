@@ -18,9 +18,16 @@ class App:
         self.setup_ui()
         self.image_generator = ImageGenerator(settings.API_KEY)
 
+    def create_context_menu(self):
+        self.context_menu = tk.Menu(self.root, tearoff=0)
+        self.context_menu.add_command(label="Save Image", command=lambda: self.save_image(self.selected_image))
+
     def setup_ui(self):
         window_width = 1792  # Set your desired window width
         window_height = 1000  # Full height of the screen
+
+        self.selected_image = None
+        self.create_context_menu()
 
         # Calculate x and y coordinates for the Tk root window
         screen_width = self.root.winfo_screenwidth()
@@ -58,46 +65,34 @@ class App:
         self.generate_button = tk.Button(self.entry_frame, text="Generate Image", command=self.generate_image)
         self.generate_button.pack(in_=self.entry_frame, padx=5)
 
+        # Image display setup
+        self.image_label = None
 
-        # Scrollable canvas setup
-        self.canvas = tk.Canvas(self.root)
-        self.scrollbar = tk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas)
-
-        self.canvas.bind_all("<MouseWheel>", lambda event: self.canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
-
-        # Configure canvas
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(
-                scrollregion=self.canvas.bbox("all")
-            )
-        )
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
-        # Pack canvas and scrollbar
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
 
     def display_image(self, photo, original_image):
+        # Remove the previous image label if it exists
+        if self.image_label is not None:
+            self.image_label.destroy()
+            self.image_label = None
+        
         # Create a label with the image
-        image_label = tk.Label(self.scrollable_frame, image=photo)
-        image_label.image = photo
-        image_label.pack(side=tk.TOP, padx=5, pady=5)
+        self.image_label = tk.Label(self.root, image=photo)
+        self.image_label.image = photo
+        self.image_label.pack(side=tk.TOP, padx=5, pady=5)
 
-        # Scroll to the bottom of the canvas
-        self.canvas.update_idletasks()  # Update the canvas to ensure it has the latest layout
-        self.canvas.yview_moveto(1)  # 1 is the end of the scrollbar
+         # Bind right-click event
+        self.image_label.bind("<Button-3>", lambda event, img=original_image: self.on_right_click(event, img))
 
-        # Add a save button for the image
-        save_button = tk.Button(self.control_frame, text="Save Image", command=lambda: self.save_image(original_image))
-        save_button.pack(side=tk.TOP, pady=5)
+        self.selected_image = original_image
+        # # Add a save button for the image
+        # save_button = tk.Button(self.control_frame, text="Save Image", command=lambda: self.save_image(original_image))
+        # save_button.pack(side=tk.TOP, pady=5)
 
     def save_image(self, image):
-        file_path = fd.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
-        if file_path:
-            image.save(file_path)
+        if self.selected_image:
+            file_path = fd.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
+            if file_path:
+                self.selected_image.save(file_path)
 
     def generate_image(self):
         self.progress.start(10)  # The number here is the delay between updates in milliseconds.
@@ -135,6 +130,12 @@ class App:
             # Clear the loading label in the main thread
             self.root.after(0, self.loading_label.config, {"text": ""})
 
+    def on_right_click(self, event, image):
+        self.selected_image = image  # Store the reference to the clicked image
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
